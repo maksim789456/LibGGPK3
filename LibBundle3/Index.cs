@@ -49,14 +49,17 @@ namespace LibBundle3 {
 			var root = createDirectory("", null);
 			var files = _Files.Values.OrderBy(f => f.Path);
 			foreach (var f in files) {
-				var nodeNames = f.Path.Split('/');
+				var nodeNames = f.Path.Split_ZeroAlloc('/');
 				var parent = root;
-				var lastDirectory = nodeNames.Length - 1;
-				for (var i = 0; i < lastDirectory; ++i) {
-					if (parent.Children.Count <= 0 || parent.Children[^1] is not IDirectoryNode dr || dr.Name != nodeNames[i])
-						parent.Children.Add(dr = createDirectory(nodeNames[i], parent));
+				foreach (ReadOnlySpan<char> nodeName in nodeNames)
+				{
+					if (nodeName.IndexOf('.') != -1) continue; // if it's file skip this
+					if (parent.Children.Count <= 0 || parent.Children[^1] is not IDirectoryNode dr ||
+					    !dr.Name.AsSpan().SequenceEqual(nodeName))
+						parent.Children.Add(dr = createDirectory(nodeName.ToString(), parent));
 					parent = dr;
 				}
+
 				parent.Children.Add(createFile(f, parent));
 			}
 			return root;
